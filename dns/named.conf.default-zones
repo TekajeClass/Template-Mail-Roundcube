@@ -27,12 +27,12 @@ zone "255.in-addr.arpa" {
 	file "/etc/bind/db.255";
 };
 
-zone "tekaje.net" {
+zone "{{ domain_name }}" {
 	type master;
 	file "/etc/bind/forward";
 };
 
-zone "10.29.112.in-addr.arpa" {
+zone "{{ reverse }}.in-addr.arpa" {
 	type master;
 	file "/etc/bind/reverse";
 };
