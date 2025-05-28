@@ -24,11 +24,11 @@ include("/etc/roundcube/debian-db-roundcube.php");
 
 // IMAP host chosen to perform the log-in.
 // See defaults.inc.php for the option description.
-$config['imap_host'] = ["tekaje.net:143"];
+$config['imap_host'] = ["{{ domain_name }}:143"];
 
 // SMTP server host (for sending mails).
 // See defaults.inc.php for the option description.
-$config['smtp_host'] = 'tekaje.net:25';
+$config['smtp_host'] = '{{ domain_name }}:25';
 
 // SMTP username (if required) if you use %u as the username Roundcube
 // will use the current username for login
@@ -43,7 +43,7 @@ $config['smtp_pass'] = '%p';
 $config['support_url'] = '';
 
 // Name your service. This is displayed on the login screen and in the window title
-$config['product_name'] = 'Roundcube Webmail';
+$config['product_name'] = 'Roundcube with Ansible :)';
 
 // This key is used to encrypt the users imap password which is stored
 // in the session record. For the default cipher method it must be
