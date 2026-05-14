@@ -1,0 +1,16 @@
+;
+; BIND data file for local loopback interface
+;
+$TTL	604800
+@	IN	SOA	{{ domain_name }}. root.{{ domain_name }}. (
+			      2		; Serial
+			 604800		; Refresh
+			  86400		; Retry
+			2419200		; Expire
+			 604800 )	; Negative Cache TTL
+;
+@	IN	NS	{{ domain_name }}.
+@	IN	MX 10	{{ domain_name }}.
+
+@	IN	A	{{ ip_address1 }}
+@	IN	A	{{ ip_address2 }}
