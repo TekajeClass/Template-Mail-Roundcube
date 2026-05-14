@@ -1,0 +1,16 @@
+;
+; BIND data file for local loopback interface
+;
+$TTL	604800
+@	IN	SOA	tekaje.net. root.tekaje.net. (
+			      2		; Serial
+			 604800		; Refresh
+			  86400		; Retry
+			2419200		; Expire
+			 604800 )	; Negative Cache TTL
+;
+@	IN	NS	tekaje.net.
+@	IN	MX 10	tekaje.net.
+
+@	IN	A	112.29.10.100
+@	IN	A	112.29.10.100
