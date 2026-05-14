@@ -1,0 +1,260 @@
+# NOTE : 
+# Siapkan file template
+# Gunakan repository github berikut untuk template : https://github.com/TekajeClass/Template-Mail-Roundcube
+# Yml Code by : Bagas Maulana
+---
+- name: Install and Configure Mail Server with Roundcube
+  hosts: target
+  become: yes
+  vars:
+    ip_address1: "112.29.10.110"
+    ip_address2: "112.29.10.110"
+    reverse: "10.29.112"
+    domain_name: "tekaje.net"
+    dns_forwarder: "8.8.8.8"
+    db_password: "123"
+    testing_user: "test"            #User Untuk tes konfigurasi
+    user_plain_password: "123"      #Password User
+
+  tasks:
+    - name: Install All Require Package_1                 #Install Package Part 1
+      apt:
+        name: 
+          - bind9
+          - mariadb-server
+          - roundcube
+        state: present
+	    #update_cache: yes
+
+    - name: Preseed Postfix (Postfix/mailname)
+      debconf:
+        name: postfix
+        question: "postfix/mailname"
+        value: "{{ domain_name }}"
+        vtype: string
+
+    - name: Preseed Postfix (Postfix/mailer_type)
+      debconf:
+        name: postfix
+        question: "postfix/main_mailer_type"
+        value: "Internet Site"
+        vtype: select
+
+    - name: Install All Require Package_2                 #Install Package Part 2
+      apt:
+        name: 
+          - postfix
+          - dovecot-imapd
+        state: present
+        #update_cache: yes                                #Uncomment jika client belum update repository
+
+    - name: Inject named.conf.options
+      template:
+        src: Template-Mail-Roundcube/dns/named.conf.options
+        dest: /etc/bind/named.conf.options
+      notify: Restart Bind9
+
+    - name: Inject named.conf.default-zones
+      template:
+        src: Template-Mail-Roundcube/dns/named.conf.default-zones
+        dest: /etc/bind/named.conf.default-zones
+      notify: Restart Bind9
+
+    - name: Inject Forward File
+      template:
+        src: Template-Mail-Roundcube/dns/forward
+        dest: /etc/bind
+      notify: Restart Bind9
+
+    - name: Inject Reverse File
+      template:
+        src: Template-Mail-Roundcube/dns/reverse
+        dest: /etc/bind
+      notify: Restart Bind9
+    
+    - name: Restart Bind9
+      systemd:
+        name: bind9
+        state: restarted
+
+    - name: Change nameserver in resolv.conf
+      lineinfile:
+        path: /etc/resolv.conf
+        regexp: '^nameserver '
+        line: "nameserver {{ ip_address1 }}"
+
+    - name: Configure Postfix main.cf
+      template:
+        src: Template-Mail-Roundcube/mail/postfix/main.cf
+        dest: /etc/postfix/main.cf
+      notify: Restart Postfix
+
+    - name: Creating Maildir for user
+      command: "maildirmake.dovecot /etc/skel/Maildir"
+      args:
+          creates: /etc/skel/Maildir
+  
+  #Reconfigure Postfix    
+    - name: Reconfigure Postfix (Postfix/destinations)
+      debconf:
+        name: postfix
+        question: "postfix/destinations"
+        value: "mail.{{ domain_name }}, {{ domain_name }}, localhost, localhost.localdomain, localhost"
+        vtype: string
+
+    - name: Preseed postfix to force synchronous updates
+      debconf:
+        name: postfix
+        question: postfix/force_synchronous_updates
+        value: 'true'
+        vtype: boolean
+
+    - name: Reconfigure Postfix (Postfix/networks)
+      debconf:
+        name: postfix
+        question: "postfix/mynetworks"
+        value: "127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 0.0.0.0/0"
+        vtype: string
+
+    - name: Reconfigure Postfix (Postfix/mailbox_size_limit)
+      debconf:
+        name: postfix
+        question: "postfix/mailbox_size_limit"
+        value: "0"
+        vtype: string
+
+    - name: Reconfigure Postfix (Postfix/recipient_delim)
+      debconf:
+        name: postfix
+        question: "postfix/recipient_delim"
+        value: "+"
+        vtype: string
+
+    - name: Reconfigure Postfix (Postfix/inet_interfaces)
+      debconf:
+        name: postfix
+        question: "postfix/inet_interfaces"
+        value: "ipv4"
+        vtype: string
+
+    - name: Reconfigure Postfix (Postfix/inet_protocols)
+      debconf:
+        name: postfix
+        question: "postfix/inet_protocols"
+        value: "all"
+        vtype: select
+
+    - name: force Reconfigure postfix
+      command: dpkg-reconfigure -f noninteractive postfix
+
+    - name: Configure Dovecot 10-mail.conf
+      template:
+        src: Template-Mail-Roundcube/mail/dovecot/10-mail.conf
+        dest: /etc/dovecot/conf.d/10-mail.conf
+      notify: Restart Dovecot
+
+    - name: Configure Dovecot 10-auth.conf
+      template:
+        src: Template-Mail-Roundcube/mail/dovecot/10-auth.conf
+        dest: /etc/dovecot/conf.d/10-auth.conf
+      notify: Restart Dovecot
+
+    - name: Enable and start Postfix & Dovecot 
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - postfix
+        - dovecot
+
+  #Reconfigure Roundcube
+    - name: Configure Roundcube (roundcube/dbconfig-install)
+      debconf:
+        name: roundcube-core
+        question: "roundcube/dbconfig-install"
+        value: "true"
+        vtype: boolean
+
+    - name: Set DB Password (roundcube/mysql/app-pass)
+      debconf:
+        name: roundcube-core
+        question: "roundcube/mysql/app-pass"
+        value: "{{ db_password }}"
+        vtype: password
+
+    - name: Confirm DB password (roundcube/mysql/app-pass-confirm)
+      debconf:
+        name: roundcube-core
+        question: "roundcube/mysql/app-pass-confirm"
+        value: "{{ db_password }}"
+        vtype: password
+
+    - name: Set DB admin Password (roundcube/mysql/admin-pass)
+      debconf:
+        name: roundcube-core
+        question: "roundcube/mysql/admin-pass"
+        value: "{{ db_password }}"
+        vtype: password
+
+    - name: Inject roundcube configuration File
+      template:
+        src: Template-Mail-Roundcube/mail/roundcube/config.inc.php
+        dest: /etc/roundcube/config.inc.php
+
+    - name: Inject Apache.conf File
+      template:
+        src: Template-Mail-Roundcube/mail/roundcube/apache2.conf
+        dest: /etc/apache2/apache2.conf
+      notify: Restart Apache
+
+    - name: Inject Mail VirtualHost
+      template:
+        src: Template-Mail-Roundcube/mail/roundcube/mail.conf
+        dest: /etc/apache2/sites-available/
+      notify: Restart Apache
+
+    - name: Disable Default VirtualHost
+      command: a2dissite 000-default.conf
+      notify: Restart Apache
+
+    - name: Enable Mail VirtualHost
+      command: a2ensite mail.conf
+      notify: Restart Apache
+
+    - name: Encrypting second user password
+      vars:
+        salt: "{{ 999999 | random | string }}"
+      ansible.builtin.set_fact:
+        user_password: "{{ user_plain_password | password_hash('sha512', salt) }}"
+
+    - name: add second user for testing
+      user:
+        name: "{{ testing_user }}"
+        shell: /bin/bash
+        groups: "sudo"
+        append: yes
+        password: "{{ user_password }}"
+        create_home: yes
+        state: present
+
+  handlers:     
+    - name: Restart Apache
+      systemd:
+        name: apache2
+        state: restarted
+    
+    - name: Restart Bind9
+      systemd:
+        name: bind9
+        state: restarted
+
+    - name: Restart Postfix
+      systemd:
+        name: postfix
+        state: restarted
+
+    - name: Restart Dovecot
+      systemd:
+        name: dovecot.service
+        state: restarted
