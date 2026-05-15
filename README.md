@@ -143,4 +143,5 @@ Template ini disediakan sesuai dengan lisensi yang berlaku. Silahkan merujuk pad
 
 ---
 
+Yaml By Bagas Maulana
 **Last Updated**: May 2026
