@@ -17,6 +17,11 @@
     user_plain_password: "123"      #Password User
 
   tasks:
+    - name: Update repository
+      apt:
+        update_cache: yes
+      ignore_errors: yes
+
     - name: Install All Require Package_1                 #Install Package Part 1
       apt:
         name: 
@@ -24,7 +29,6 @@
           - mariadb-server
           - roundcube
         state: present
-	    #update_cache: yes
 
     - name: Preseed Postfix (Postfix/mailname)
       debconf:
