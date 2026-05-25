@@ -10,7 +10,7 @@
     ip_address1: "112.29.10.110"
     ip_address2: "112.29.10.110"
     reverse: "10.29.112"
-    domain_name: "tekaje.net"
+    domain_name: "tekaje.ac.id"
     dns_forwarder: "8.8.8.8"
     db_password: "123"
     testing_user: "test"            #User Untuk tes konfigurasi
@@ -26,6 +26,7 @@
       apt:
         name: 
           - bind9
+          - debconf-utils
           - mariadb-server
           - roundcube
         state: present
